@@ -10,8 +10,8 @@ today = datetime(year=2022, month=12, day=14)
 puzzle = Puzzle(year=today.year, day=today.day)
 # %%
 raw_input_data = puzzle.input_data
-raw_input_data = """498,4 -> 498,6 -> 496,6
-503,4 -> 502,4 -> 502,9 -> 494,9"""
+# raw_input_data = """498,4 -> 498,6 -> 496,6
+# 503,4 -> 502,4 -> 502,9 -> 494,9"""
 wall_instructions = raw_input_data.split("\n")
 print(wall_instructions)
 
@@ -165,4 +165,11 @@ map_b.drop_particles()
 
 print(map_b)
 
+# %%
+submit(
+    map_b.particle_counter,
+    part="b",
+    day=today.day,
+    year=today.year,
+)
 # %%
