@@ -36,7 +36,6 @@ beacons = set()
 # cant_be_hidden_beacons = set()
 min_x = max_x = 0
 min_y = max_y = 0
-distances = []
 for i, reading in enumerate(readings):
     print(reading)
     sensor_x, sensor_y, nearest_beacon_x, nearest_beacon_y = list(
@@ -46,9 +45,6 @@ for i, reading in enumerate(readings):
     beacons.add(nearest_beacon)
     sensor = Sensor(x=sensor_x, y=sensor_y, nearest_beacon=nearest_beacon)
     sensors.add(sensor)
-    distance = abs(sensor.x - nearest_beacon.x) + abs(sensor.y - nearest_beacon.y)
-    distances.append(distance)
-    print(f"distance: {distance}")
     if sensor_x > max_x or nearest_beacon_x > max_x:
         max_x = max((sensor_x, nearest_beacon_x))
     if sensor_y > max_y or nearest_beacon_y > max_y:
@@ -58,15 +54,7 @@ for i, reading in enumerate(readings):
     if sensor_y < min_y or nearest_beacon_y < min_y:
         min_y = min((sensor_y, nearest_beacon_y))
 print((min_x, max_x), (min_y, max_y))
-print(min(distances))
-# %%
-distances
-# gcd(*distances[:2])
-# %%
-min_x = min_y = 0
-max_x = max_y = 4000000
-print(np.ceil(max_x/min(distances)))
-for i in rang
+
 # %%
 def find_row_beacons(min_x, max_x, y, beacons):
     found_beacons = []
@@ -98,7 +86,7 @@ for i, sensor in enumerate(sensors):
             cant_be.add(not_beacon)
 # %%
 my_answer_a = len(cant_be) - len(find_row_beacons(min_x, max_x, y, beacons))
-my_answer_a
+print(my_answer_a)
 
 # %%
 submit(
@@ -108,23 +96,17 @@ submit(
     year=today.year,
 )
 # %%
-x = set([(0, 0)])
-x.update([(1, 1), (1, 1)])
-x
-# %%
-
-
-transformed_sensors = 
-
-# %%
 def manhattan_distance(point_a, point_b):
     return abs(point_a[0] - point_b[0]) + abs(point_a[1] - point_b[1])
 
+
 def rotate(x, y):
-    return x+y, x-y
+    return x + y, x - y
+
 
 def unrotate(rotated_x, rotated_y):
     return int(rotated_x / 2 + rotated_y / 2), int(rotated_y / 2 - rotated_x / 2)
+
 
 def create_rotated_square(point):
     "Rotate the diamonds 45 degrees to make them normal squares"
@@ -139,6 +121,7 @@ def create_rotated_square(point):
 
 
 Sensor = namedtuple("Sensor", "x y distance")
+max_x = max_y = 4000000
 
 rotated_squares = []
 for i, reading in enumerate(readings):
@@ -146,23 +129,21 @@ for i, reading in enumerate(readings):
     sensor_x, sensor_y, nearest_beacon_x, nearest_beacon_y = list(
         map(int, re.findall("\-*\d+", reading))
     )
-    distance = manhattan_distance((sensor_x, sensor_y), (nearest_beacon_x, nearest_beacon_y))
+    distance = manhattan_distance(
+        (sensor_x, sensor_y), (nearest_beacon_x, nearest_beacon_y)
+    )
     sensor = Sensor(x=sensor_x, y=sensor_y, distance=distance)
     rotated_square = create_rotated_square(sensor)
     rotated_squares.append(rotated_square)
 
 # Get x vertices of rotated squares
-rotated_x_vertices = set(
-    square.right_x for square in rotated_squares
-)
-rotated_x_vertices.update(
-    square.left_x for square in rotated_squares
-)
+rotated_x_vertices = set(square.right_x for square in rotated_squares)
+rotated_x_vertices.update(square.left_x for square in rotated_squares)
 # Add boundary points
 boundary_x_values = set()
 for val in rotated_x_vertices:
-    boundary_x_values.add(val+1)
-    boundary_x_values.add(val-1)
+    boundary_x_values.add(val + 1)
+    boundary_x_values.add(val - 1)
 rotated_x_vertices = sorted(rotated_x_vertices | boundary_x_values)
 
 # find potential x values
@@ -176,9 +157,10 @@ for i, rotated_square in enumerate(rotated_squares):
             if rotated_square.right_x <= x_vertex <= rotated_square.left_x:
                 rotated_x_ranges[x_vertex].append(i)
 
-# find potential y values
 rotated_y_ranges = {}
+# Iterate over x values and their associated squares
 for rotated_x, square_indices in rotated_x_ranges.items():
+    # find y-ranges values for each x_vertex and its square(s)
     y_ranges = []
     for square_index in square_indices:
         square = rotated_squares[square_index]
@@ -188,7 +170,7 @@ for rotated_x, square_indices in rotated_x_ranges.items():
             rng = [square.right_y, square.left_y]
         y_ranges.append(rng)
     y_ranges.sort()
-    # merge the potential x and y values
+    # find if the point is in the intersection of
     range_stack = []
     if len(y_ranges) > 0:
         range_stack.append(y_ranges[0])
@@ -197,17 +179,15 @@ for rotated_x, square_indices in rotated_x_ranges.items():
                 range_stack[-1][1] = max(range_stack[-1][1], r[1])
             else:
                 range_stack.append(r)
-    rotated_y_ranges[rotated_x] = range_stack
+            # If there are two ranges that means it is found to be a possible value in both dimensions.
+            # Since there is only one possible spot on the map we can stop looking. Problem Solved!
+            if len(range_stack) == 2:
+                rotated_y = r[0][1] + 1
+                x, y = unrotate(rotated_x, rotated_y)
+                my_answer_b = x * multiplier + y
+            print(my_answer_b)
+            break
 
-# Iterate over the possible x, y values and stop when you find the answer
-multiplier = 4000000
-for rotated_x, rotated_y_range in rotated_y_ranges.items():
-    if len(rotated_y_range) == 2:
-        rotated_y = rotated_y_range[0][1] + 1
-        x, y = unrotate(rotated_x, rotated_y)
-        my_answer_b = (x * multiplier + y)
-        print(my_answer_b)
-        break
 
 # %%
 submit(
