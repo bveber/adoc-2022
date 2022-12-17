@@ -127,7 +127,8 @@ def unrotate(rotated_x, rotated_y):
     return int(rotated_x / 2 + rotated_y / 2), int(rotated_y / 2 - rotated_x / 2)
 
 def create_rotated_square(point):
-    Square = namedtuple("Square", "top_right bottom_right top_left bottom_left")
+    "Rotate the diamonds 45 degrees to make them normal squares"
+    Square = namedtuple("Square", "right_x right_y left_x left_y")
     x_min = point.x - point.distance
     x_max = point.x + point.distance
     rotated_x_min = x_min - point.y
@@ -139,69 +140,68 @@ def create_rotated_square(point):
 
 Sensor = namedtuple("Sensor", "x y distance")
 
-sensors = set()
 rotated_squares = []
 for i, reading in enumerate(readings):
-    # print(reading)
+    # Parse input
     sensor_x, sensor_y, nearest_beacon_x, nearest_beacon_y = list(
         map(int, re.findall("\-*\d+", reading))
     )
     distance = manhattan_distance((sensor_x, sensor_y), (nearest_beacon_x, nearest_beacon_y))
-
     sensor = Sensor(x=sensor_x, y=sensor_y, distance=distance)
     rotated_square = create_rotated_square(sensor)
     rotated_squares.append(rotated_square)
-    sensors.add(sensor)
 
-# print(rotated_squares)
+# Get x vertices of rotated squares
 rotated_x_vertices = set(
-    square.top_right for square in rotated_squares
+    square.right_x for square in rotated_squares
 )
 rotated_x_vertices.update(
-    square.top_left for square in rotated_squares
+    square.left_x for square in rotated_squares
 )
+# Add boundary points
 boundary_x_values = set()
 for val in rotated_x_vertices:
     boundary_x_values.add(val+1)
     boundary_x_values.add(val-1)
 rotated_x_vertices = sorted(rotated_x_vertices | boundary_x_values)
-# print(rotated_x_vertices)
 
+# find potential x values
 rotated_x_ranges = {k: [] for k in rotated_x_vertices}
 for i, rotated_square in enumerate(rotated_squares):
     for x_vertex in rotated_x_vertices:
-        if rotated_square.top_right > rotated_square.top_left:
-            if rotated_square.top_left <= x_vertex <= rotated_square.top_right:
+        if rotated_square.right_x > rotated_square.left_x:
+            if rotated_square.left_x <= x_vertex <= rotated_square.right_x:
                 rotated_x_ranges[x_vertex].append(i)
         else:
-            if rotated_square.top_right <= x_vertex <= rotated_square.top_left:
+            if rotated_square.right_x <= x_vertex <= rotated_square.left_x:
                 rotated_x_ranges[x_vertex].append(i)
 
+# find potential y values
 rotated_y_ranges = {}
 for rotated_x, square_indices in rotated_x_ranges.items():
-    ranges = []
+    y_ranges = []
     for square_index in square_indices:
         square = rotated_squares[square_index]
-        if square.bottom_right > square.bottom_left:
-            rng = [square.bottom_left, square.bottom_right]
+        if square.right_y > square.left_y:
+            rng = [square.left_y, square.right_y]
         else:
-            rng = [square.bottom_right, square.bottom_left]
-        ranges.append(rng)
-    ranges.sort()
-    stack = []
-    if len(ranges) > 0:
-        stack.append(ranges[0])
-        for r in ranges[1:]:
-            if stack[-1][0] <= r[0] <= stack[-1][1]:
-                stack[-1][1] = max(stack[-1][1], r[1])
+            rng = [square.right_y, square.left_y]
+        y_ranges.append(rng)
+    y_ranges.sort()
+    # merge the potential x and y values
+    range_stack = []
+    if len(y_ranges) > 0:
+        range_stack.append(y_ranges[0])
+        for r in y_ranges[1:]:
+            if range_stack[-1][0] <= r[0] <= range_stack[-1][1]:
+                range_stack[-1][1] = max(range_stack[-1][1], r[1])
             else:
-                stack.append(r)
-    rotated_y_ranges[rotated_x] = stack
+                range_stack.append(r)
+    rotated_y_ranges[rotated_x] = range_stack
 
-rotated_y_ranges
+# Iterate over the possible x, y values and stop when you find the answer
 multiplier = 4000000
 for rotated_x, rotated_y_range in rotated_y_ranges.items():
-    print(rotated_x, rotated_y_range)
     if len(rotated_y_range) == 2:
         rotated_y = rotated_y_range[0][1] + 1
         x, y = unrotate(rotated_x, rotated_y)
