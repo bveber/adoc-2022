@@ -70,9 +70,10 @@ for x in range(x_min, x_max):
 
 cube_queue = [Cube(x_min, y_min, z_min)]
 visited = set(Cube(x_min, y_min, z_min))
-ctr = 0
+neighbor_ctr = 0
+# depth first search neighboring cubes
 while cube_queue:
-    cube = cube_queue.pop()
+    cube = cube_queue.pop(-1)
     neighboring_cubes = [
         Cube(cube.x - 1, cube.y, cube.z),
         Cube(cube.x + 1, cube.y, cube.z),
@@ -85,11 +86,11 @@ while cube_queue:
         if neighbor in visited or neighbor not in possible_cubes:
             continue
         if neighbor in cubes:
-            ctr += 1
+            neighbor_ctr += 1
         else:
             visited.add(neighbor)
             cube_queue.append(neighbor)
-my_answer_b = ctr
+my_answer_b = neighbor_ctr
 my_answer_b
 # %%
 submit(
